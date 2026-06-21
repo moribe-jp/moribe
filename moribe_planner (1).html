@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>moribe</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;600&family=Noto+Sans+JP:wght@400;500;700&display=swap');
+:root{
+  --ink:#1a1612;--ash:#4a4440;--mist:#9a9390;--paper:#f5f2ed;
+  --warm:#ede8e0;--charcoal:#2d2926;--ember:#8b4513;--gold:#c4933f;
+  --sage:#5a7a5a;--border:#d4cec6;--white:#fff;--nav-h:72px;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;overflow:hidden;}
+body{font-family:'Noto Sans JP',sans-serif;background:var(--paper);color:var(--ink);display:flex;flex-direction:column;font-size:16px;}
+
+/* ヘッダー */
+.hdr{background:var(--charcoal);padding:16px 20px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+.logo{font-family:'Noto Serif JP',serif;font-size:24px;color:#f0ebe3;letter-spacing:5px;}
+.logo span{color:var(--gold);}
+.hdr-right{text-align:right;}
+.date-now{font-size:14px;color:#bbb;letter-spacing:1px;}
+#sync-status{font-size:12px;color:var(--gold);min-height:16px;}
+
+/* スクロール領域 */
+.content{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:20px 16px calc(var(--nav-h) + 24px);}
+
+/* ボトムナビ */
+.bnav{position:fixed;bottom:0;left:0;right:0;height:var(--nav-h);background:var(--charcoal);display:flex;border-top:1px solid #3d3732;z-index:200;}
+.bnav-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;color:var(--mist);border:none;background:transparent;cursor:pointer;padding:10px 0;}
+.bnav-btn.active{color:var(--gold);}
+.bnav-btn svg{width:28px;height:28px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;}
+.bnav-label{font-size:13px;letter-spacing:.5px;font-weight:500;}
+
+/* FABボタン */
+.fab{position:fixed;right:20px;bottom:calc(var(--nav-h) + 20px);width:64px;height:64px;border-radius:50%;background:var(--gold);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:150;box-shadow:0 4px 16px rgba(0,0,0,.3);}
+.fab svg{width:32px;height:32px;stroke:#fff;fill:none;stroke-width:2.5;stroke-linecap:round;}
+.fab.hide{display:none;}
+
+/* パネル */
+.panel{display:none;}.panel.active{display:block;}
+.sec-title{font-size:13px;color:var(--mist);letter-spacing:2px;margin-bottom:16px;padding-bottom:10px;border-bottom:1px solid var(--border);font-family:'Noto Serif JP',serif;}
+
+/* ── ダッシュボード ── */
+.dash-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:24px;}
+.dash-card{background:var(--white);border-radius:16px;padding:20px 8px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,.08);}
+.dash-num{font-family:'Noto Serif JP',serif;font-size:52px;color:var(--charcoal);line-height:1;font-weight:600;}
+.dash-label{font-size:14px;color:var(--mist);margin-top:8px;font-weight:500;}
+
+.today-list{display:flex;flex-direction:column;gap:12px;}
+.today-card{background:var(--white);border-radius:14px;padding:18px;border-left:5px solid var(--ember);box-shadow:0 2px 8px rgba(0,0,0,.08);}
+.today-time{font-size:15px;color:var(--gold);margin-bottom:5px;font-weight:700;}
+.today-ttl{font-size:20px;font-weight:700;color:var(--ink);line-height:1.4;}
+.today-place{font-size:15px;color:var(--mist);margin-top:5px;}
+
+/* ── スケジュール一覧 ── */
+.sch-list{display:flex;flex-direction:column;gap:14px;}
+.sch-card{background:var(--white);border-radius:16px;padding:18px;border-left:5px solid var(--gold);box-shadow:0 2px 8px rgba(0,0,0,.08);}
+.sch-card.done{border-left-color:var(--sage);opacity:.6;}
+.sch-head{display:flex;gap:16px;align-items:flex-start;margin-bottom:14px;}
+.sch-date{text-align:center;min-width:56px;}
+.sch-day{font-family:'Noto Serif JP',serif;font-size:40px;color:var(--ink);line-height:1;font-weight:600;}
+.sch-mon{font-size:14px;color:var(--mist);margin-top:2px;}
+.sch-tim{font-size:15px;color:var(--gold);margin-top:4px;font-weight:700;}
+.sch-body{flex:1;min-width:0;}
+.sch-ttl{font-size:20px;font-weight:700;word-break:break-word;margin-bottom:6px;line-height:1.4;}
+.sch-card.done .sch-ttl{text-decoration:line-through;}
+.sch-place{font-size:15px;color:var(--mist);}
+.sch-note{font-size:15px;color:var(--ash);margin-top:8px;line-height:1.7;word-break:break-word;}
+.sch-acts{display:flex;gap:10px;}
+.btn-done{flex:1;padding:14px;border:2px solid var(--border);border-radius:12px;font-size:16px;font-weight:700;background:transparent;color:var(--ash);cursor:pointer;}
+.btn-done.is-done{border-color:var(--sage);color:var(--sage);}
+.btn-edit{flex:1;padding:14px;border:2px solid var(--gold);border-radius:12px;font-size:16px;font-weight:700;background:transparent;color:var(--gold);cursor:pointer;}
+.btn-edit:active{background:var(--gold);color:white;}
+.btn-del{flex:1;padding:14px;border:2px solid #e0a0a0;border-radius:12px;font-size:16px;font-weight:700;background:transparent;color:#c0392b;cursor:pointer;}
+.btn-del:active{background:#c0392b;color:white;}
+
+/* カテゴリタグ */
+.cat{display:inline-block;font-size:13px;padding:5px 12px;border-radius:20px;margin-right:8px;font-weight:700;}
+.cat-営業{background:#fef3e2;color:#c4933f;}
+.cat-農業{background:#e8f5e9;color:#4a7c4a;}
+.cat-SNS{background:#e3f2fd;color:#1976d2;}
+.cat-タクシー{background:#f3e5f5;color:#7b1fa2;}
+.cat-その他{background:#f5f5f5;color:#666;}
+
+/* ── 活動記録一覧 ── */
+.act-list{display:flex;flex-direction:column;gap:14px;}
+.act-card{background:var(--white);border-radius:16px;padding:18px;box-shadow:0 2px 8px rgba(0,0,0,.08);}
+.act-head{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px;gap:10px;}
+.act-ttl{font-size:20px;font-weight:700;word-break:break-word;flex:1;line-height:1.4;}
+.act-date{font-size:14px;color:var(--mist);white-space:nowrap;margin-top:4px;}
+.act-body{font-size:16px;color:var(--ash);line-height:1.8;word-break:break-word;}
+.act-result{margin-top:12px;padding:14px;background:var(--warm);border-radius:12px;font-size:15px;color:var(--ink);word-break:break-word;line-height:1.7;}
+.act-result::before{content:"▶ ";color:var(--gold);}
+.act-foot{display:flex;justify-content:flex-end;gap:10px;margin-top:14px;}
+
+/* 空メッセージ */
+.empty{text-align:center;color:var(--mist);font-size:18px;padding:60px 20px;line-height:2;}
+.empty small{font-size:15px;display:block;margin-top:8px;}
+
+/* ── モーダル ── */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:300;display:none;align-items:flex-end;}
+.modal-bg.open{display:flex;}
+.modal{background:var(--white);border-radius:24px 24px 0 0;padding:24px 20px 40px;width:100%;max-height:92vh;overflow-y:auto;-webkit-overflow-scrolling:touch;}
+.modal-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;}
+.modal-title{font-size:20px;font-weight:700;color:var(--ink);}
+.modal-close{width:40px;height:40px;border-radius:50%;border:none;background:var(--warm);cursor:pointer;font-size:22px;color:var(--ash);display:flex;align-items:center;justify-content:center;}
+
+/* フォーム */
+.frow{margin-bottom:18px;}
+.flabel{font-size:14px;color:var(--mist);font-weight:700;letter-spacing:.5px;margin-bottom:8px;display:block;}
+.f2{display:flex;gap:12px;}
+.f2 .frow{flex:1;margin-bottom:0;}
+input,select,textarea{
+  width:100%;padding:16px;border:2px solid var(--border);border-radius:12px;
+  font-family:'Noto Sans JP',sans-serif;font-size:16px;color:var(--ink);
+  background:var(--paper);outline:none;transition:border-color .2s;
+  appearance:none;-webkit-appearance:none;
+}
+input:focus,select:focus,textarea:focus{border-color:var(--gold);background:var(--white);}
+textarea{resize:none;height:100px;line-height:1.7;}
+select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 12 12'%3E%3Cpath fill='%238a837a' d='M6 8L1 3h10z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;padding-right:40px;}
+.btn-submit{width:100%;padding:18px;border:none;border-radius:14px;font-family:'Noto Sans JP',sans-serif;font-size:18px;font-weight:700;cursor:pointer;background:var(--charcoal);color:#f0ebe3;margin-top:20px;letter-spacing:1px;}
+.btn-submit:disabled{background:var(--mist);cursor:not-allowed;}
+
+@media(min-width:600px){
+  .content{max-width:480px;margin:0 auto;}
+  .bnav{max-width:480px;left:50%;transform:translateX(-50%);}
+  .fab{right:calc(50% - 220px);}
+  .modal{max-width:480px;margin:0 auto;}
+  .dash-num{font-size:60px;}
+}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <div class="logo">mo<span>ribe</span></div>
+  <div class="hdr-right">
+    <div class="date-now" id="dateNow"></div>
+    <div id="sync-status"></div>
+  </div>
+</div>
+
+<div class="content">
+  <!-- 概要 -->
+  <div class="panel active" id="panel-dashboard">
+    <div class="sec-title">TODAY'S OVERVIEW</div>
+    <div class="dash-grid">
+      <div class="dash-card"><div class="dash-num" id="cnt-today">0</div><div class="dash-label">今日の予定</div></div>
+      <div class="dash-card"><div class="dash-num" id="cnt-week">0</div><div class="dash-label">今週の予定</div></div>
+      <div class="dash-card"><div class="dash-num" id="cnt-activity">0</div><div class="dash-label">活動記録</div></div>
+    </div>
+    <div class="sec-title">本日の予定</div>
+    <div class="today-list" id="today-list"><div class="empty">本日の予定はありません</div></div>
+  </div>
+
+  <!-- 予定 -->
+  <div class="panel" id="panel-schedule">
+    <div class="sec-title">スケジュール一覧</div>
+    <div class="sch-list" id="schedule-list"><div class="empty">読み込み中…</div></div>
+  </div>
+
+  <!-- 活動記録 -->
+  <div class="panel" id="panel-activity">
+    <div class="sec-title">活動記録一覧</div>
+    <div class="act-list" id="activity-list"><div class="empty">読み込み中…</div></div>
+  </div>
+</div>
+
+<!-- FAB -->
+<button class="fab hide" id="fab" onclick="openModal()">
+  <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+</button>
+
+<!-- ボトムナビ -->
+<nav class="bnav">
+  <button class="bnav-btn active" id="nav-dashboard" onclick="switchTab('dashboard')">
+    <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+    <span class="bnav-label">概要</span>
+  </button>
+  <button class="bnav-btn" id="nav-schedule" onclick="switchTab('schedule')">
+    <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+    <span class="bnav-label">予定</span>
+  </button>
+  <button class="bnav-btn" id="nav-activity" onclick="switchTab('activity')">
+    <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+    <span class="bnav-label">活動記録</span>
+  </button>
+  <button class="bnav-btn" onclick="syncNow()">
+    <svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+    <span class="bnav-label">同期</span>
+  </button>
+</nav>
+
+<!-- 予定モーダル -->
+<div class="modal-bg" id="modal-schedule" onclick="closeModalBg(event,'modal-schedule')">
+  <div class="modal">
+    <div class="modal-hdr">
+      <span class="modal-title">予定を追加</span>
+      <button class="modal-close" onclick="closeModal('modal-schedule')">×</button>
+    </div>
+    <div class="f2">
+      <div class="frow"><label class="flabel">日付</label><input type="date" id="s-date"></div>
+      <div class="frow"><label class="flabel">時間（任意）</label><input type="time" id="s-time"></div>
+    </div>
+    <div class="frow"><label class="flabel">タイトル</label><input type="text" id="s-title" placeholder="例：田尻さんと商談" maxlength="100"></div>
+    <div class="f2">
+      <div class="frow"><label class="flabel">カテゴリ</label><select id="s-cat"><option>営業</option><option>農業</option><option>SNS</option><option>タクシー</option><option>その他</option></select></div>
+      <div class="frow"><label class="flabel">場所（任意）</label><input type="text" id="s-place" placeholder="穂谷" maxlength="100"></div>
+    </div>
+    <div class="frow"><label class="flabel">メモ（任意）</label><textarea id="s-note" placeholder="持ち物・準備事項など" maxlength="500"></textarea></div>
+    <button class="btn-submit" id="btn-add-schedule" onclick="addSchedule()">予定を追加</button>
+  </div>
+</div>
+
+<!-- 活動記録モーダル -->
+<div class="modal-bg" id="modal-activity" onclick="closeModalBg(event,'modal-activity')">
+  <div class="modal">
+    <div class="modal-hdr">
+      <span class="modal-title">活動を記録</span>
+      <button class="modal-close" onclick="closeModal('modal-activity')">×</button>
+    </div>
+    <div class="f2">
+      <div class="frow"><label class="flabel">日付</label><input type="date" id="a-date"></div>
+      <div class="frow"><label class="flabel">カテゴリ</label><select id="a-cat"><option>営業</option><option>農業</option><option>SNS</option><option>タクシー</option><option>その他</option></select></div>
+    </div>
+    <div class="frow"><label class="flabel">タイトル</label><input type="text" id="a-title" placeholder="例：福住さんにサンプル提供" maxlength="100"></div>
+    <div class="frow"><label class="flabel">内容・詳細</label><textarea id="a-body" placeholder="何をしたか・誰と会ったか・気づきなど" maxlength="1000"></textarea></div>
+    <div class="frow"><label class="flabel">成果・次のアクション</label><textarea id="a-result" placeholder="例：来週サンプル追加送付" maxlength="500"></textarea></div>
+    <button class="btn-submit" id="btn-add-activity" onclick="addActivity()">記録する</button>
+  </div>
+</div>
+
+<script>
+const GAS_URL='https://script.google.com/macros/s/AKfycbwtVghvzTamFRJBmK6vnrA1AzLk1dVPKRlwz133PnI1mtKHQulMtMLJgXEt_wQQo3-t/exec';
+let schedules=[],activities=[],saving=false,idCounter=0;
+let currentTab='dashboard';
+let editingScheduleId=null,editingActivityId=null;
+
+function genId(){ return Date.now()*1000+(idCounter++%1000); }
+function esc(s){ if(!s)return''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+function showSyncStatus(m,c){ const e=document.getElementById('sync-status'); e.textContent=m; e.style.color=c||'var(--gold)'; }
+
+async function loadFromGAS(sheet){
+  try{
+    const r=await fetch(`${GAS_URL}?sheet=${encodeURIComponent(sheet)}&t=${Date.now()}`);
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    const d=JSON.parse(await r.text());
+    if(Array.isArray(d)){ localStorage.setItem('moribe_'+sheet,JSON.stringify(d)); return d; }
+    throw new Error('invalid');
+  }catch(e){ return JSON.parse(localStorage.getItem('moribe_'+sheet)||'[]'); }
+}
+async function saveToGAS(sheet,data){
+  localStorage.setItem('moribe_'+sheet,JSON.stringify(data));
+  showSyncStatus('同期中…');
+  try{
+    await fetch(GAS_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify({sheet,action:'save',rows:data})});
+    showSyncStatus('✓ 保存済み','var(--sage)'); setTimeout(()=>showSyncStatus(''),2000);
+  }catch(e){ showSyncStatus('⚠ オフライン保存済み','var(--ember)'); }
+}
+
+function openModal(){
+  const id=currentTab==='activity'?'modal-activity':'modal-schedule';
+  if(id==='modal-schedule'){
+    editingScheduleId=null;
+    document.querySelector('#modal-schedule .modal-title').textContent='予定を追加';
+    document.getElementById('btn-add-schedule').textContent='予定を追加';
+    ['s-time','s-title','s-place','s-note'].forEach(i=>document.getElementById(i).value='');
+    document.getElementById('s-date').value=today();
+    document.getElementById('s-cat').value='営業';
+  }else{
+    editingActivityId=null;
+    document.querySelector('#modal-activity .modal-title').textContent='活動を記録';
+    document.getElementById('btn-add-activity').textContent='記録する';
+    ['a-title','a-body','a-result'].forEach(i=>document.getElementById(i).value='');
+    document.getElementById('a-date').value=today();
+    document.getElementById('a-cat').value='営業';
+  }
+  document.getElementById(id).classList.add('open');
+}
+function openEditSchedule(id){
+  const s=schedules.find(x=>x.id===id); if(!s)return;
+  editingScheduleId=id;
+  document.querySelector('#modal-schedule .modal-title').textContent='予定を編集';
+  document.getElementById('btn-add-schedule').textContent='更新する';
+  document.getElementById('s-date').value=s.date;
+  document.getElementById('s-time').value=s.time||'';
+  document.getElementById('s-title').value=s.title;
+  document.getElementById('s-cat').value=s.cat;
+  document.getElementById('s-place').value=s.place||'';
+  document.getElementById('s-note').value=s.note||'';
+  document.getElementById('modal-schedule').classList.add('open');
+}
+function openEditActivity(id){
+  const a=activities.find(x=>x.id===id); if(!a)return;
+  editingActivityId=id;
+  document.querySelector('#modal-activity .modal-title').textContent='活動を編集';
+  document.getElementById('btn-add-activity').textContent='更新する';
+  document.getElementById('a-date').value=a.date;
+  document.getElementById('a-cat').value=a.cat;
+  document.getElementById('a-title').value=a.title;
+  document.getElementById('a-body').value=a.body||'';
+  document.getElementById('a-result').value=a.result||'';
+  document.getElementById('modal-activity').classList.add('open');
+}
+function closeModal(id){ document.getElementById(id).classList.remove('open'); }
+function closeModalBg(e,id){ if(e.target===document.getElementById(id)) closeModal(id); }
+
+function switchTab(name){
+  currentTab=name;
+  ['dashboard','schedule','activity'].forEach(n=>{
+    document.getElementById('panel-'+n).classList.toggle('active',n===name);
+    document.getElementById('nav-'+n)?.classList.toggle('active',n===name);
+  });
+  document.getElementById('fab').classList.toggle('hide',name==='dashboard');
+  if(name==='dashboard') renderDashboard();
+  document.querySelector('.content').scrollTop=0;
+}
+async function syncNow(){
+  showSyncStatus('読み込み中…');
+  try{
+    [schedules,activities]=await Promise.all([loadFromGAS('schedule'),loadFromGAS('activity')]);
+    renderSchedule(); renderActivity(); renderDashboard();
+    showSyncStatus('✓ 最新データを取得','var(--sage)');
+  }catch(e){ showSyncStatus('⚠ 読み込み失敗','var(--ember)'); }
+  setTimeout(()=>showSyncStatus(''),2500);
+}
+
+function today(){ return new Date().toISOString().slice(0,10); }
+function formatDate(s){ if(!s)return''; const d=new Date(s+'T00:00:00'); return `${d.getMonth()+1}/${d.getDate()}`; }
+function dayOf(s){ return s?new Date(s+'T00:00:00').getDate():''; }
+function monthOf(s){ return s?`${new Date(s+'T00:00:00').getMonth()+1}月`:''; }
+function isThisWeek(s){ if(!s)return false; const now=today(),end=new Date(); end.setDate(end.getDate()+7); return s>=now&&s<=end.toISOString().slice(0,10); }
+function updateHeader(){ const n=new Date(),d=['日','月','火','水','木','金','土']; document.getElementById('dateNow').textContent=`${n.getFullYear()}.${String(n.getMonth()+1).padStart(2,'0')}.${String(n.getDate()).padStart(2,'0')} (${d[n.getDay()]})`; }
+
+async function addSchedule(){
+  if(saving)return;
+  const date=document.getElementById('s-date').value;
+  const title=document.getElementById('s-title').value.trim();
+  if(!date){alert('日付を入力してください');return;}
+  if(!title){alert('タイトルを入力してください');return;}
+  saving=true;
+  const btn=document.getElementById('btn-add-schedule');
+  btn.disabled=true; btn.textContent=editingScheduleId?'更新中…':'追加中…';
+  try{
+    if(editingScheduleId){
+      schedules=schedules.map(s=>s.id===editingScheduleId?{
+        ...s,date,time:document.getElementById('s-time').value,title,
+        cat:document.getElementById('s-cat').value,
+        place:document.getElementById('s-place').value.trim(),
+        note:document.getElementById('s-note').value.trim()
+      }:s);
+    }else{
+      schedules.unshift({id:genId(),date,time:document.getElementById('s-time').value,title,
+        cat:document.getElementById('s-cat').value,
+        place:document.getElementById('s-place').value.trim(),
+        note:document.getElementById('s-note').value.trim(),done:false});
+    }
+    await saveToGAS('schedule',schedules);
+    editingScheduleId=null;
+    closeModal('modal-schedule');
+    renderSchedule(); renderDashboard();
+  }finally{ saving=false; btn.disabled=false; btn.textContent='予定を追加'; }
+}
+async function toggleDone(id){
+  schedules=schedules.map(s=>s.id===id?{...s,done:!s.done}:s);
+  await saveToGAS('schedule',schedules); renderSchedule(); renderDashboard();
+}
+async function deleteSchedule(id){
+  if(!confirm('この予定を削除しますか？'))return;
+  schedules=schedules.filter(s=>s.id!==id);
+  await saveToGAS('schedule',schedules); renderSchedule(); renderDashboard();
+}
+function renderSchedule(){
+  const list=document.getElementById('schedule-list');
+  const sorted=[...schedules].sort((a,b)=>{ if(a.date!==b.date)return a.date>b.date?1:-1; return (a.time||'99:99')>(b.time||'99:99')?1:-1; });
+  if(!sorted.length){list.innerHTML='<div class="empty">予定がありません<br><small>右下の＋ボタンから追加</small></div>';return;}
+  list.innerHTML=sorted.map(s=>`
+    <div class="sch-card ${s.done?'done':''}">
+      <div class="sch-head">
+        <div class="sch-date">
+          <div class="sch-mon">${esc(monthOf(s.date))}</div>
+          <div class="sch-day">${esc(String(dayOf(s.date)))}</div>
+          ${s.time?`<div class="sch-tim">${esc(s.time)}</div>`:''}
+        </div>
+        <div class="sch-body">
+          <div class="sch-ttl"><span class="cat cat-${esc(s.cat)}">${esc(s.cat)}</span>${esc(s.title)}</div>
+          ${s.place?`<div class="sch-place">📍 ${esc(s.place)}</div>`:''}
+          ${s.note?`<div class="sch-note">${esc(s.note).replace(/\n/g,'<br>')}</div>`:''}
+        </div>
+      </div>
+      <div class="sch-acts">
+        <button class="btn-done ${s.done?'is-done':''}" onclick="toggleDone(${s.id})">${s.done?'✓完了':'完了'}</button>
+        <button class="btn-edit" onclick="openEditSchedule(${s.id})">編集</button>
+        <button class="btn-del" onclick="deleteSchedule(${s.id})">削除</button>
+      </div>
+    </div>`).join('');
+}
+
+async function addActivity(){
+  if(saving)return;
+  const date=document.getElementById('a-date').value;
+  const title=document.getElementById('a-title').value.trim();
+  if(!date){alert('日付を入力してください');return;}
+  if(!title){alert('タイトルを入力してください');return;}
+  saving=true;
+  const btn=document.getElementById('btn-add-activity');
+  btn.disabled=true; btn.textContent=editingActivityId?'更新中…':'保存中…';
+  try{
+    if(editingActivityId){
+      activities=activities.map(a=>a.id===editingActivityId?{
+        ...a,date,cat:document.getElementById('a-cat').value,title,
+        body:document.getElementById('a-body').value.trim(),
+        result:document.getElementById('a-result').value.trim()
+      }:a);
+    }else{
+      activities.unshift({id:genId(),date,cat:document.getElementById('a-cat').value,title,
+        body:document.getElementById('a-body').value.trim(),
+        result:document.getElementById('a-result').value.trim()});
+    }
+    await saveToGAS('activity',activities);
+    editingActivityId=null;
+    closeModal('modal-activity');
+    renderActivity(); renderDashboard();
+  }finally{ saving=false; btn.disabled=false; btn.textContent='記録する'; }
+}
+async function deleteActivity(id){
+  if(!confirm('この記録を削除しますか？'))return;
+  activities=activities.filter(a=>a.id!==id);
+  await saveToGAS('activity',activities); renderActivity(); renderDashboard();
+}
+function renderActivity(){
+  const list=document.getElementById('activity-list');
+  const sorted=[...activities].sort((a,b)=>{ if(a.date!==b.date)return b.date>a.date?1:-1; return b.id-a.id; });
+  if(!sorted.length){list.innerHTML='<div class="empty">記録がありません<br><small>右下の＋ボタンから追加</small></div>';return;}
+  list.innerHTML=sorted.map(a=>`
+    <div class="act-card">
+      <div class="act-head">
+        <div class="act-ttl"><span class="cat cat-${esc(a.cat)}">${esc(a.cat)}</span>${esc(a.title)}</div>
+        <span class="act-date">${esc(formatDate(a.date))}</span>
+      </div>
+      ${a.body?`<div class="act-body">${esc(a.body).replace(/\n/g,'<br>')}</div>`:''}
+      ${a.result?`<div class="act-result">${esc(a.result)}</div>`:''}
+      <div class="act-foot">
+        <button class="btn-edit" onclick="openEditActivity(${a.id})">編集</button>
+        <button class="btn-del" onclick="deleteActivity(${a.id})">削除</button>
+      </div>
+    </div>`).join('');
+}
+function renderDashboard(){
+  const t=today();
+  const ti=schedules.filter(s=>s.date===t&&!s.done);
+  const wi=schedules.filter(s=>isThisWeek(s.date)&&!s.done);
+  document.getElementById('cnt-today').textContent=ti.length;
+  document.getElementById('cnt-week').textContent=wi.length;
+  document.getElementById('cnt-activity').textContent=activities.length;
+  const tl=document.getElementById('today-list');
+  if(!ti.length){tl.innerHTML='<div class="empty">本日の予定はありません</div>';return;}
+  tl.innerHTML=[...ti].sort((a,b)=>(a.time||'99:99')>(b.time||'99:99')?1:-1).map(s=>`
+    <div class="today-card">
+      ${s.time?`<div class="today-time">${esc(s.time)}</div>`:''}
+      <div class="today-ttl"><span class="cat cat-${esc(s.cat)}">${esc(s.cat)}</span>${esc(s.title)}</div>
+      ${s.place?`<div class="today-place">📍 ${esc(s.place)}</div>`:''}
+    </div>`).join('');
+}
+async function init(){
+  updateHeader(); setInterval(updateHeader,60000);
+  document.getElementById('s-date').value=today();
+  document.getElementById('a-date').value=today();
+  showSyncStatus('読み込み中…');
+  try{
+    [schedules,activities]=await Promise.all([loadFromGAS('schedule'),loadFromGAS('activity')]);
+    showSyncStatus('✓ 同期完了','var(--sage)');
+  }catch(e){ showSyncStatus('⚠ 読み込み失敗','var(--ember)'); }
+  setTimeout(()=>showSyncStatus(''),2500);
+  renderSchedule(); renderActivity(); renderDashboard();
+}
+init();
+</script>
+</body>
+</html>
